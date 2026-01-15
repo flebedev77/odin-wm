@@ -3,28 +3,6 @@ import "core:fmt"
 import "core:strings"
 import x "vendor:x11/xlib"
 
-create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
-  if owindow.attributes.width != 0 && owindow.attributes.height != 0 {
-    owindow.frame = x.CreateSimpleWindow(display, x.DefaultRootWindow(display), 
-      owindow.attributes.x,
-      owindow.attributes.y,
-      u32(owindow.attributes.width),
-      u32(owindow.attributes.height),
-      FRAME_BORDER_WIDTH,
-      FRAME_BORDER_COLOR, FRAME_BORDER_COLOR)
-
-
-    x.SelectInput(display, owindow.frame, (
-        {.SubstructureRedirect} |
-        {.SubstructureNotify}
-    ))
-
-    x.ReparentWindow(display, window, owindow.frame, 0, 0)
-
-    x.MapWindow(display, owindow.frame)
-  }
-}
-
 on_map_request :: proc(e: x.XMapRequestEvent) {
   x.MapWindow(display, e.window)
 
@@ -52,7 +30,7 @@ on_configure_request :: proc(e: x.XConfigureRequestEvent) {
     // x = config_reqs * 400,
     y = e.y,
     width = e.width,
-    height = e.height,
+    height = e.height + TITLE_BAR_HEIGHT,
     border_width = e.border_width,
     sibling = e.above,
     stack_mode = e.detail

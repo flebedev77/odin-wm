@@ -30,3 +30,28 @@ close_frame :: proc(window: x.Window) {
   x.DestroyWindow(display, val_p.frame)
   mem.zero_item(val_p)
 }
+
+create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
+  if owindow.attributes.width != 0 && owindow.attributes.height != 0 {
+    owindow.frame = x.CreateSimpleWindow(display, x.DefaultRootWindow(display), 
+      owindow.attributes.x,
+      owindow.attributes.y,
+      u32(owindow.attributes.width),
+      u32(owindow.attributes.height),
+      FRAME_BORDER_WIDTH,
+      FRAME_BORDER_COLOR, FRAME_BORDER_COLOR)
+
+
+    x.SelectInput(display, owindow.frame, (
+        {.SubstructureRedirect} |
+        {.SubstructureNotify} |
+        {.Button1Motion} |
+        {.ButtonRelease} |
+        {.ButtonPress}
+    ))
+
+    x.ReparentWindow(display, window, owindow.frame, 0, TITLE_BAR_HEIGHT)
+
+    x.MapWindow(display, owindow.frame)
+  }
+}

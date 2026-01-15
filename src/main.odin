@@ -18,6 +18,9 @@ atoms: [len(atom_types)]x.Atom
 
 display: ^x.Display
 
+frame_grab: [2]i32 // position of the mouse inside the frame titlebar
+is_frame_grabbed: bool = false
+
 init_atoms :: proc(display: ^x.Display) {
   atoms[atom_types.delete_window] = x.InternAtom(display, "WM_DELETE_WINDOW", false)
   atoms[atom_types.protocols] = x.InternAtom(display, "WM_PROTOCOLS", false)
@@ -72,6 +75,26 @@ main :: proc() {
       case .DestroyNotify:
         when ODIN_DEBUG {fmt.printfln("Closing window %d", ev.xdestroywindow.window)}
         close_frame(ev.xdestroywindow.window)
+        break
+      case .ButtonPress:
+        if ev.xbutton.button == .Button1 {
+          is_frame_grabbed = true
+          frame_grab.x = ev.xbutton.x
+          frame_grab.y = ev.xbutton.y
+          x.RaiseWindow(display, ev.xbutton.window)
+          fmt.printfln("Frame grabbed")
+        }
+        break
+      case .MotionNotify:
+        if is_frame_grabbed {
+          x.MoveWindow(display, ev.xmotion.window, ev.xmotion.x_root - frame_grab.x, ev.xmotion.y_root - frame_grab.y)
+        }
+        break
+      case .ButtonRelease:
+        if ev.xbutton.button == .Button1 {
+          is_frame_grabbed = false
+          fmt.printfln("Frame released")
+        }
         break
       case:
         when ODIN_DEBUG {fmt.printfln("Unhandled event")}
