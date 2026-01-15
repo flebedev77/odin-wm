@@ -1,0 +1,2 @@
+xterm &
+exec ./odin-win
