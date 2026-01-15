@@ -5,7 +5,10 @@ import x "vendor:x11/xlib"
 OdinWindow :: struct {
   name: string,
   attributes: x.XWindowAttributes,
-  frame: x.Window
+  window: x.Window,
+  frame: x.Window,
+  frame_close: x.Window,
+  frame_maximise: x.Window
 }
 
 windows: map[x.Window]OdinWindow
@@ -17,6 +20,7 @@ atom_types :: enum {
 atoms: [len(atom_types)]x.Atom
 
 display: ^x.Display
+root_window: x.Window
 
 frame_grab: [2]i32 // position of the mouse inside the frame titlebar
 is_frame_grabbed: bool = false
@@ -35,7 +39,7 @@ main :: proc() {
   }
   init_atoms(display)
 
-  root_window := x.DefaultRootWindow(display)
+  root_window = x.DefaultRootWindow(display)
   if root_window == 0 {
     fmt.panicf("Could not get root window")
   }
@@ -94,10 +98,19 @@ main :: proc() {
         if ev.xbutton.button == .Button1 {
           is_frame_grabbed = false
           fmt.printfln("Frame released")
+          parent_window := find_window_from_contents(0, ev.xbutton.window, 0)
+          if parent_window != 0 {
+            close_window(parent_window)
+          }
+          parent_window = find_window_from_contents(0, 0, ev.xbutton.window)
+          if parent_window != 0 {
+            fmt.printfln("Minimizing %s", windows[parent_window].name)
+            x.UnmapWindow(display, windows[parent_window].frame)
+          }
         }
         break
       case:
-        when ODIN_DEBUG {fmt.printfln("Unhandled event")}
+        // when ODIN_DEBUG {fmt.printfln("Unhandled event")}
         break
     }
 

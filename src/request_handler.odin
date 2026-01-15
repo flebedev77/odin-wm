@@ -55,6 +55,7 @@ on_configure_request :: proc(e: x.XConfigureRequestEvent) {
     create_frame(e.window, val_p)
   } else {
     x.ConfigureWindow(display, val_p.frame, changes_mask, &rect)
+    resize_frame(val_p)
   }
 }
 

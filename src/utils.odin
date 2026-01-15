@@ -1,5 +1,6 @@
 package main
 import "core:mem"
+import "core:fmt"
 import x "vendor:x11/xlib"
 
 keycode_cmp :: proc(keycode: u32, key: x.KeySym) -> bool {
@@ -33,13 +34,33 @@ close_frame :: proc(window: x.Window) {
 
 create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
   if owindow.attributes.width != 0 && owindow.attributes.height != 0 {
-    owindow.frame = x.CreateSimpleWindow(display, x.DefaultRootWindow(display), 
+    owindow.window = window
+    owindow.frame = x.CreateSimpleWindow(display, root_window, 
       owindow.attributes.x,
       owindow.attributes.y,
       u32(owindow.attributes.width),
       u32(owindow.attributes.height),
       FRAME_BORDER_WIDTH,
       FRAME_BORDER_COLOR, FRAME_BORDER_COLOR)
+
+    owindow.frame_close = x.CreateSimpleWindow(display, owindow.frame,
+      owindow.attributes.x,
+      owindow.attributes.y,
+      FRAME_BUTTON_WIDTH,
+      TITLE_BAR_HEIGHT,
+      0,
+      FRAME_BORDER_COLOR, FRAME_CLOSE_COLOR)
+
+    owindow.frame_maximise = x.CreateSimpleWindow(display, owindow.frame,
+      owindow.attributes.x,
+      owindow.attributes.y,
+      FRAME_BUTTON_WIDTH,
+      TITLE_BAR_HEIGHT,
+      0,
+      FRAME_BORDER_COLOR, FRAME_MAXIMISE_COLOR)
+
+    x.SelectInput(display, owindow.frame_close, ({.ButtonRelease} | {.ButtonPress}))
+    x.SelectInput(display, owindow.frame_maximise, ({.ButtonRelease} | {.ButtonPress}))
 
 
     x.SelectInput(display, owindow.frame, (
@@ -52,6 +73,28 @@ create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
 
     x.ReparentWindow(display, window, owindow.frame, 0, TITLE_BAR_HEIGHT)
 
+    x.MapWindow(display, owindow.frame_close)
+    x.MapWindow(display, owindow.frame_maximise)
     x.MapWindow(display, owindow.frame)
+
+    resize_frame(owindow)
   }
+}
+
+resize_frame :: proc(owindow: ^OdinWindow) {
+  x.MoveWindow(display, owindow.frame_maximise, owindow.attributes.width - FRAME_BUTTON_WIDTH*2 - FRAME_BUTTON_PADDING, 0)
+  x.MoveWindow(display, owindow.frame_close, owindow.attributes.width - FRAME_BUTTON_WIDTH, 0)
+}
+
+find_window_from_contents :: proc(frame, frame_close, frame_maximise: x.Window) -> x.Window {
+  for window_id in windows {
+    fmt.printfln("Querying window frame in %d %d", window_id, frame_close)
+    if windows[window_id].frame == frame ||
+      windows[window_id].frame_close == frame_close ||
+      windows[window_id].frame_maximise == frame_maximise
+    {
+      return window_id
+    }
+  }
+  return 0
 }
