@@ -59,8 +59,26 @@ create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
       0,
       FRAME_BORDER_COLOR, FRAME_MAXIMISE_COLOR)
 
-    x.SelectInput(display, owindow.frame_close, ({.ButtonRelease} | {.ButtonPress}))
-    x.SelectInput(display, owindow.frame_maximise, ({.ButtonRelease} | {.ButtonPress}))
+    owindow.frame_minimise = x.CreateSimpleWindow(display, owindow.frame,
+      owindow.attributes.x,
+      owindow.attributes.y,
+      FRAME_BUTTON_WIDTH,
+      TITLE_BAR_HEIGHT,
+      0,
+      FRAME_BORDER_COLOR, FRAME_MINIMISE_COLOR)
+
+    x.SelectInput(display, owindow.frame_close, (
+        {.ButtonRelease} | {.ButtonPress} |
+        {.Exposure}
+    ))
+    x.SelectInput(display, owindow.frame_maximise, (
+        {.ButtonRelease} | {.ButtonPress} |
+        {.Exposure}
+    ))
+    x.SelectInput(display, owindow.frame_minimise, (
+        {.ButtonRelease} | {.ButtonPress} |
+        {.Exposure}
+    ))
 
 
     x.SelectInput(display, owindow.frame, (
@@ -73,8 +91,11 @@ create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
 
     x.ReparentWindow(display, window, owindow.frame, 0, TITLE_BAR_HEIGHT)
 
+    // x.PutImage(display, pixmap, gc, close_image, 0, 0, 0, 0, 32, 32)
+
     x.MapWindow(display, owindow.frame_close)
     x.MapWindow(display, owindow.frame_maximise)
+    x.MapWindow(display, owindow.frame_minimise)
     x.MapWindow(display, owindow.frame)
 
     resize_frame(owindow)
@@ -82,16 +103,18 @@ create_frame :: proc(window: x.Window, owindow: ^OdinWindow) {
 }
 
 resize_frame :: proc(owindow: ^OdinWindow) {
+  x.MoveWindow(display, owindow.frame_minimise, owindow.attributes.width - FRAME_BUTTON_WIDTH*3 - FRAME_BUTTON_PADDING*2, 0)
   x.MoveWindow(display, owindow.frame_maximise, owindow.attributes.width - FRAME_BUTTON_WIDTH*2 - FRAME_BUTTON_PADDING, 0)
   x.MoveWindow(display, owindow.frame_close, owindow.attributes.width - FRAME_BUTTON_WIDTH, 0)
 }
 
-find_window_from_contents :: proc(frame, frame_close, frame_maximise: x.Window) -> x.Window {
+find_window_from_contents :: proc(frame, frame_close, frame_maximise, frame_minimise: x.Window) -> x.Window {
   for window_id in windows {
     fmt.printfln("Querying window frame in %d %d", window_id, frame_close)
     if windows[window_id].frame == frame ||
       windows[window_id].frame_close == frame_close ||
-      windows[window_id].frame_maximise == frame_maximise
+      windows[window_id].frame_maximise == frame_maximise ||
+      windows[window_id].frame_minimise == frame_minimise
     {
       return window_id
     }
