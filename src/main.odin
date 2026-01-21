@@ -7,11 +7,13 @@ import x "vendor:x11/xlib"
 OdinWindow :: struct {
   name: string,
   attributes: x.XWindowAttributes,
+  non_maximised_attributes: x.XWindowAttributes,
   window: x.Window,
   frame: x.Window,
   frame_close: x.Window,
   frame_maximise: x.Window,
   frame_minimise: x.Window,
+  is_maximised: bool
 }
 
 windows: map[x.Window]OdinWindow
@@ -132,6 +134,9 @@ main :: proc() {
   // x.DrawString(display, root_window, x.DefaultGC(display, screen), 100, 100, transmute([^]u8)&str, 10)
   x.Sync(display, false)
 
+  root_attributes: x.XWindowAttributes
+  x.GetWindowAttributes(display, root_window, &root_attributes)
+
   // fmt.printfln("PIXEL WHITE %X", x.WhitePixel(display, screen))
 
   is_running: bool = true
@@ -176,10 +181,37 @@ main :: proc() {
           if parent_window != 0 {
             close_window(parent_window)
           }
-          parent_window = find_window_from_contents(0, 0, ev.xbutton.window, 0)
+          parent_window = find_window_from_contents(0, 0, 0, ev.xbutton.window)
           if parent_window != 0 {
             fmt.printfln("Minimizing %s", windows[parent_window].name)
             x.UnmapWindow(display, windows[parent_window].frame)
+          }
+          parent_window = find_window_from_contents(0, 0, ev.xbutton.window, 0)
+          if parent_window != 0 {
+            // owindow := &windows[parent_window]
+            _, owindow, ji, err := map_entry(&windows, parent_window)
+            fmt.printfln("Maximising %s", owindow.name)
+            // x.UnmapWindow(display, windows[parent_window].frame)
+            if !owindow.is_maximised {
+              owindow.is_maximised = true
+              x.GetWindowAttributes(display, owindow.frame, &owindow.non_maximised_attributes)
+              x.MoveResizeWindow(display, owindow.frame, 0, 0, u32(root_attributes.width), u32(root_attributes.height))
+              owindow.attributes.width = root_attributes.width
+              owindow.attributes.height = root_attributes.height
+              resize_frame(owindow^)
+            } else {
+              owindow.is_maximised = false
+              x.MoveResizeWindow(display, owindow.frame,
+                owindow.non_maximised_attributes.x, 
+                owindow.non_maximised_attributes.y,
+                u32(owindow.non_maximised_attributes.width),
+                u32(owindow.non_maximised_attributes.height)
+              )
+              owindow.attributes.width = owindow.non_maximised_attributes.width
+              owindow.attributes.height = owindow.non_maximised_attributes.height
+              resize_frame(owindow^)
+            }
+
           }
         }
         break

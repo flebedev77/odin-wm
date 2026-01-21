@@ -27,7 +27,6 @@ on_map_request :: proc(e: x.XMapRequestEvent) {
 on_configure_request :: proc(e: x.XConfigureRequestEvent) {
   rect := x.XWindowChanges{
     x = e.x,
-    // x = config_reqs * 400,
     y = e.y,
     width = e.width,
     height = e.height + TITLE_BAR_HEIGHT,
@@ -40,22 +39,21 @@ on_configure_request :: proc(e: x.XConfigureRequestEvent) {
   if err != nil {
     fmt.printfln("Could not modify window size attribute")
   } else {
-    val_p.attributes.x = e.x
-    val_p.attributes.y = e.y
-    val_p.attributes.width = e.width
-    val_p.attributes.height = e.height
+    val_p.attributes.x = rect.x
+    val_p.attributes.y = rect.y
+    val_p.attributes.width = rect.width
+    val_p.attributes.height = rect.height
     fmt.printfln("Window resized/moved %s x %d y %d w %d h %d", val_p.name, val_p.attributes.x, val_p.attributes.y, val_p.attributes.width, val_p.attributes.height)
   }
 
   changes_mask := transmute(x.WindowChangesMask)i32(e.value_mask)
-  // changes_mask += {.CWX}
 
   x.ConfigureWindow(display, e.window, changes_mask, &rect)
   if val_p.frame == 0 {
     create_frame(e.window, val_p)
   } else {
     x.ConfigureWindow(display, val_p.frame, changes_mask, &rect)
-    resize_frame(val_p)
+    resize_frame(val_p^)
   }
 }
 
